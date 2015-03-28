@@ -11,7 +11,7 @@ var userSchema = new Schema({
 exports.userSchema = userSchema;
 
 var surveySchema = new Schema({
-		question:{type: String, required: true},
+		question:{type: String, required: true, unique:true},
 		options:[String]
 	}, {collection: "survey"});
 

@@ -1,0 +1,23 @@
+<html>
+<body>
+<h1>Lab 3 Landing Page</h1>
+<form name="startPage" action="/controller" onsubmit="return checkName()">
+	Username<input type="text" name="userName" id="username"></br>
+	<input type="submit" name="action" value="Survey" method="get" >
+	<input type="submit" name="action" value="Match" method="get">
+</form>
+<script type="text/javascript">
+function checkName(){
+	var nameField = document.forms['startPage']['userName'].value;
+	if (nameField==null||nameField==''){
+		alert("Enter your name");
+		return false;
+	}
+
+}
+
+</script>
+
+</body>
+
+</html>

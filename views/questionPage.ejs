@@ -1,0 +1,61 @@
+<html>
+<body>
+<h1>Question <%= currentPage + 1%> of 5</h1>
+<p><%= survey[currentPage].question%> </p>
+<form action='/survey'>
+	<input type='radio' name='answer' value='<%= survey[currentPage].options[0]%>'><%= survey[currentPage].options[0]%></br>
+	<input type='radio' name='answer' value='<%= survey[currentPage].options[1]%>'><%= survey[currentPage].options[1]%></br>
+	<input type='radio' name='answer' value='<%= survey[currentPage].options[2]%>'><%= survey[currentPage].options[2]%></br>
+	
+	<%if(currentPage>0) {%>
+		<input type='submit' name='moveDirection' value='Previous' method='get' >
+	<% } %>
+		<input type='submit' name='moveDirection' value='Next' method='get' onclick="return checkAnswer()">
+</form>
+
+
+<script type="text/javascript">
+	var answerToFillIn;
+
+	function checkAnswer(){
+		var radios = document.getElementsByName("answer");
+		var isAnswered = false;
+		for (var i = 0; i < radios.length; i++){
+			if (radios[i].checked == true){
+				isAnswered = true;
+				break;
+			}
+		}
+		if (isAnswered){
+			return true;
+		}
+		else{
+			alert("Answer the question");
+			return false;
+		}
+	}
+	
+	function fillIn(answer){
+		var options = document.getElementsByName("answer");
+		for (var i = 0; i < options.length; i++){
+			if(options[i].value.trim() === answer.trim()){
+				options[i].checked = true;
+				
+				break;
+			}
+		}
+	}
+	
+	<% if (locals.previousPressed) {%>
+		answerToFillIn = "<%=locals.previousPressed%>";
+		fillIn(answerToFillIn);
+		
+	<% }else{%>
+		console.log("previous does not exist");
+	<% }%>
+
+</script>
+
+</body>
+
+</html>

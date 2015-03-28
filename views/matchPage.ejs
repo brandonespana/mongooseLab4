@@ -1,0 +1,14 @@
+<html>
+<body>
+<h1><%= username %>, here are your matches</h1>
+<% if (matches.matches.length<1) {%>
+	<p>No matches found</p>
+<%}else{%>
+	<% for (var k = 0; k < matches.matches.length; k++){%>
+	<p><%=k+1%>.  <b><%=matches.matches[k].name%></b> with <%=matches.matches[k].number%> matching answers</p>
+	<%}%>
+
+<%}%>
+
+</body>
+</html>
