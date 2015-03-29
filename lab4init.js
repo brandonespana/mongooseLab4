@@ -10,7 +10,7 @@ exports.initializeSurvey = function(callback){
 	var question1 = new SurveyModel({question: 'What is your name?', options:['Lancelot', 'Arthur', 'Guinevere']});
 	var question2 = new SurveyModel({question: 'What is your quest?', options:['To find the grail', 'To slay the rabbit', 'To find the Knights who say Ni!']});
 	var question3 = new SurveyModel({question: 'What is your favorite color?', options:['Red', 'Blue', "I don’t know"]});
-	var question4 = new SurveyModel({question: 'What GPA do you want in your partner?'});
+	var question4 = new SurveyModel({question: 'What GPA do you want in your partner? Enter a value in this exact format #.## between 0.00 and 4.50'});
 
 	question1.save(function(error){
 		console.log("saved 1");
