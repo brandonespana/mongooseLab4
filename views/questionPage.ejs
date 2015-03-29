@@ -1,12 +1,20 @@
 <html>
+<head>
+	<meta charset="UTF-8">
+</head>
 <body>
 <h1>Question <%= currentPage + 1%> of 5</h1>
 <p><%= survey[currentPage].question%> </p>
+
 <form action='/survey'>
-	<input type='radio' name='answer' value='<%= survey[currentPage].options[0]%>'><%= survey[currentPage].options[0]%></br>
-	<input type='radio' name='answer' value='<%= survey[currentPage].options[1]%>'><%= survey[currentPage].options[1]%></br>
-	<input type='radio' name='answer' value='<%= survey[currentPage].options[2]%>'><%= survey[currentPage].options[2]%></br>
-	
+	<% if (currentPage < survey.length - 1){ %>
+		<input type='radio' name='answer' value="<%= survey[currentPage].options[0]%>"><%= survey[currentPage].options[0]%></br>
+		<input type='radio' name='answer' value="<%= survey[currentPage].options[1]%>"><%= survey[currentPage].options[1]%></br>
+		<input type='radio' name='answer' value="<%= survey[currentPage].options[2]%>"><%= survey[currentPage].options[2]%></br>
+	<%}else{%>
+		<input type='text' name='answer' id='gpaInput'>
+		<br><br>
+	<% } %>
 	<%if(currentPage>0) {%>
 		<input type='submit' name='moveDirection' value='Previous' method='get' >
 	<% } %>
@@ -15,44 +23,71 @@
 
 
 <script type="text/javascript">
-	var answerToFillIn;
+	var onLastQuestion = false;
 
+	
 	function checkAnswer(){
+		console.log("Checking the answer for an answer");
 		var radios = document.getElementsByName("answer");
+		console.log("got the radios");
+		var gpaInput = document.getElementById("gpaInput");
+		//console.log("got the gpa element >"+ gpaInput.value+"<");
 		var isAnswered = false;
+		console.log("set the isAnswered var");
 		for (var i = 0; i < radios.length; i++){
 			if (radios[i].checked == true){
+				console.log("Found a checked answer");
 				isAnswered = true;
 				break;
 			}
 		}
+		console.log("finsihed the for loop");
+
+		//Check if we're on the GPA question (the last one)
+		// allow this answer to be left blank, so that all validation is done by Mongoose on the server
+
+		//
 		if (isAnswered){
+			
 			return true;
 		}
 		else{
+			if ((gpaInput !==null) ){//&& (gpaInput.value === "")
+				return true;
+			}
 			alert("Answer the question");
 			return false;
 		}
 	}
 	
 	function fillIn(answer){
-		var options = document.getElementsByName("answer");
-		for (var i = 0; i < options.length; i++){
-			if(options[i].value.trim() === answer.trim()){
-				options[i].checked = true;
-				
-				break;
+		//if we're on the last question (the GPA question)
+		//the answer will fill a text field instead of a radio button selection
+		if (<%=currentPage%> == <%=survey.length - 1%>){
+			var gpaInput = document.getElementById("gpaInput");
+			gpaInput.value = answer;
+		}
+		else{
+			console.log("The answer to radio is :"+answer);
+			var options = document.getElementsByName("answer");
+			for (var i = 0; i < options.length; i++){
+				if(options[i].value.trim() === answer.trim()){
+					options[i].checked = true;
+					
+					break;
+				}
 			}
 		}
 	}
 	
-	<% if (locals.previousPressed) {%>
-		answerToFillIn = "<%=locals.previousPressed%>";
-		fillIn(answerToFillIn);
-		
-	<% }else{%>
-		console.log("previous does not exist");
-	<% }%>
+	var savedAnswer = "<%=theAnswer%>";
+	console.log("SAVED ANSWER IS "+savedAnswer);
+	if(savedAnswer != 'None'){
+		fillIn(savedAnswer);
+	}
+	else{
+		console.log("Question has not been asnwered before");
+	}	
 
 </script>
 
