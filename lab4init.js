@@ -1,3 +1,6 @@
+//@author: Brandon Espana
+//@version: March 30, 2015
+
 var mongoose = require('mongoose');
 var schemas = require('./lab4schema.js');
 var userSchema = schemas.userSchema;
@@ -13,20 +16,15 @@ exports.initializeSurvey = function(callback){
 	var question4 = new SurveyModel({question: 'What GPA do you want in your partner? Enter a value in this exact format #.## between 0.00 and 4.50'});
 
 	question1.save(function(error){
-		console.log("saved 1");
 		question2.save(function(){
-			console.log("saved 2");
 				question3.save(function(){
-					console.log("saved 3");
 						question4.save(function(){
-							console.log("saved 4");
 							callback();
 							
 							});
 					});			
 			});	
 	});
-
 }
 
 exports.SurveyModel = SurveyModel;

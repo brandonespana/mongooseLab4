@@ -1,5 +1,5 @@
 //@author: Brandon Espana
-//@version: March 27, 2015
+//@version: March 30, 2015
 
 var express = require('express');
 var http = require('http');
@@ -26,7 +26,6 @@ var db = mongoose.connection;
 
 db.once('open', function(){
 	Models.initializeSurvey(function(){
-		console.log("Survey has been initialized. Loading it locally...");
 		Models.SurveyModel.find(function(error, result){
 				app.locals.survey = result;
 				// EJS survey page will access survey like this: 
@@ -52,7 +51,7 @@ app.get("/controller", function (request, response){
 	app.locals.username = name;
 
 	if(action=='Survey'){
-		console.log("going to survey as: "+name);
+		console.log("Going to survey as: "+name);
 		response.redirect('/survey');
 	}
 	else if (action='Match'){
@@ -75,93 +74,107 @@ app.get("/survey", function(request, response){
 	var goTo = query.moveDirection;
 	var answer = query.answer;
 	var currentPageSnapshot = app.locals.currentPage;
-	
-	console.log("Answer from query is this: >"+answer+"<");
-	
-	//~ if (app.locals.currentPage == (app.locals.survey.length - 1)){
-		//~ saveLastAnswer(theirName, answer, function(error){
-			//~ if(error){
-			//~ response.render("questionPage.ejs")
-			//~ }
-		//~ });
-	//~ }
-	//Save the answer if one has been selected
-	//else 
-//	if(typeof answer!= 'undefined'){
-		//console.log("SELECTED AN ANSWER "+answer);
-		saveAnswer(theirName, answer, app.locals.currentPage, function(error){
 
-			if (error){
-				console.log("Point 0");
-				response.render("questionPage.ejs", {theAnswer: "invalid"});
-				//reload the page to answer again
+	saveAnswer(theirName, answer, app.locals.currentPage, function(error){
+		if (error){
+			//used for GPA question, error is a validation error from db
+			//reload the page to answer again
+			response.render("questionPage.ejs", {theAnswer: "invalid"});
+		}
+		else{
+			//Increment or decrement page number for previous and next buttons
+			if(goTo == 'Next'){
+				app.locals.currentPage += 1;
+			}
+			else if (goTo == 'Previous'){
+				app.locals.currentPage -= 1;
+			}
+			
+			//Check survey progress. redirect to next question, or main page if done
+			if (app.locals.currentPage < app.locals.survey.length){
+				getAnswer(theirName, app.locals.currentPage, function(result){
+					response.render("questionPage.ejs", {theAnswer: result});
+				});
 			}
 			else{
-				console.log("Point 1");
-				//do everything normally
-				//Increment or decrement page number for previous and next buttons
-				if(goTo == 'Next'){
-					console.log("Point 2: Next");
-					app.locals.currentPage += 1;
-				}
-				else if (goTo == 'Previous'){
-					console.log("Point 3: Previous");
-					app.locals.currentPage -= 1;
-				}
-				
-				//Check survey progress. redirect to next question, or main page if done
-				if (app.locals.currentPage < app.locals.survey.length){
-					console.log("Point 4: getting answer");
-					getAnswer(theirName, app.locals.currentPage, function(result){
-						console.log("Point 5: got answer, about to render");
-						response.render("questionPage.ejs", {theAnswer: result});
-					});
-				}
-				else{
-					console.log("Point 5: going back home");
-					app.locals.currentPage = 0;
-					response.render("surveyComplete.html");
-				}
+				app.locals.currentPage = 0;
+				response.render("surveyComplete.html");
 			}
-			//console.log("SAVE ANSWER CALL BACK ERROR IS THIS IS THIS: " + error);
-		});
-	
-	
-	//Increment or decrement page number for previous and next buttons
-	//~ if(goTo == 'Next'){
-		//~ app.locals.currentPage += 1;
-	//~ }
-	//~ else if (goTo == 'Previous'){
-		//~ app.locals.currentPage -= 1;
-	//~ }
-	//~ 
-	//~ //Check survey progress. redirect to next question, or main page if done
-	//~ if (app.locals.currentPage < app.locals.survey.length){
-		//~ getAnswer(theirName, app.locals.currentPage, function(result){
-			//~ response.render("questionPage.ejs", {theAnswer: result});
-		//~ });
-	//~ }
-	//~ else{
-		//~ app.locals.currentPage = 0;
-		//~ response.render("surveyComplete.html");
-	//~ }
-	
-
+		}
+	});
 });
 
-function saveLastAnswer(username, answer, callback){
-	Models.UsersModel.findOne({name:username}, function(error, user){
-		user.lastAnswer = answer;
-		user.save(function (error){
-			console.log(error);
-			callback(error);
+app.get('/match', function (request, response){
+	var name = app.locals.username;
+	var matches = [];//saves like this: [{"name":"aName", "matchCount":aNumber},{"name":"aName", "matchCount":aNumber},etc]
+	var userFound = false;
+	var user;
+	
+	Models.UsersModel.find(function(error, users){
+		//Find the current user:
+		for (var i = 0; i < users.length; i++){
+			if (users[i].name === name){
+				userFound = true;
+				user = users[i];
+				break;
+			}
+		}
+		
+		if (userFound){
+			//Go through everyone's answers:
+			for (var i = 0; i < users.length; i ++){
+				var currentUser = users[i];
+				var matchCount = 0;
+				
+				if(name !== currentUser.name){//to not match self
+					//Check GPA answer:
+					if(user.lastAnswer === currentUser.lastAnswer){
+						matchCount += 1;
+					}
+					//Check other answers:
+					for (var j = 0; j < currentUser.answers.length; j++){
+						if(user.answers[j] === currentUser.answers[j]){
+							matchCount += 1;
+						}
+					}
+				matches.push({"name":currentUser.name, "matchCount":matchCount});
+				}
+			}
+		}
+		sortMatches(matches, function(sortedMatches){
+			response.render("matchPage.ejs",{matches:sortedMatches});
 		});
 	});
+});
+
+//Sorts by REMOVING the biggest value from the input array and ADDING it into 
+//a new 'sorted' array. Repeats until there is nothing left in the input array
+function sortMatches(matches, callback){
+	var sorted = [];
+	var initialLength = matches.length;
+	var loopIndex = 0;
 	
+	while (loopIndex < initialLength){
+		var biggest = 0;
+		var biggestMatch;
+		var indexToRemove = -1; 
+		//console.log("matches length is now: "+matches.length);
+		for(var i = 0; i < matches.length; i++){
+			if (matches[i].matchCount >= biggest){
+				biggest = matches[i].matchCount;
+				biggestMatch = matches[i];
+				indexToRemove = i;
+			}
+		}
+		sorted.push(biggestMatch);
+		matches.splice(indexToRemove, 1);
+		loopIndex++;
+	}
+	callback(sorted);
 }
 
-
-//TODO: Find a way to use model.update() to both update and create a new user, and validate the last answer if needed
+//Saves the answer if there was one selected (radio) or one typed in (non empty text input for GPA question)
+//Creates a new document for a user if the user is new
 function saveAnswer(username, answer, position, callback){
 	var lastQuestion = false;
 
@@ -172,7 +185,6 @@ function saveAnswer(username, answer, position, callback){
 		callback();
 	}
 	if(typeof answer != 'undefined'){
-		console.log("Point 6: answer is not undefined");
 		//Look for the user
 		Models.UsersModel.findOne({name:username}, function (error, result){
 			if(error){
@@ -180,7 +192,7 @@ function saveAnswer(username, answer, position, callback){
 			}
 			//User not found, create a new document for this user, the position will alway be 0 for a new user
 			else if(!result){ 
-				console.log("Not found");
+				console.log("User not found, adding new user");
 				var newUser = new Models.UsersModel({name:username, answers:[answer]});
 				newUser.save(function(error, newest){
 					if(!error){
@@ -194,15 +206,6 @@ function saveAnswer(username, answer, position, callback){
 				if (lastQuestion){
 					result.lastAnswer = answer;
 					result.save(function (error){
-						
-						if(error){
-							console.log('SAVE ERROR FOR THE LAST QUESTION SAVE ERROR FOR LAST QUESTION '+error);
-							//callback(error);
-						}
-						else{
-							console.log('NO ERROR NO ERROR  ERROR FOR THE LAST QUESTION NO ERROR FOR LAST QUESTION '+error);
-							//callback(error);
-						}
 						callback(error);
 					});
 				}
@@ -213,21 +216,19 @@ function saveAnswer(username, answer, position, callback){
 					Models.UsersModel.update({name:username},setModifier, function(error, affected, responds){
 						callback(error);
 						if(error){console.log(error);}
-					});//end update call
+					});
 				}
 			}
 		});
 	}
 	else{
-		console.log("Point 7: answer is undefined or an empty string");
 		callback();
 	}
 }
 
-//getAnswer will pass to the callback either the actual found answer
+//getAnswer will pass to the callback either the actual found answer to prepopulate the selection for returning users
 //or the word 'None' if it's the user's first time taking survey
 function getAnswer(username, questionNumber, callback){
-	//console.log("Getting answer for: "+username);
 	var lastQuestion = false;
 	if (questionNumber == (app.locals.survey.length -1)){
 			lastQuestion = true;
@@ -239,16 +240,12 @@ function getAnswer(username, questionNumber, callback){
 				answer = result.lastAnswer;
 			}
 			else if (result == null || (typeof result.answers[questionNumber] == 'undefined')){
-				console.log("THIS IS A TOTALLY NEW USER or A TOALLY NEW QUESTION FOR THIS USER");
+				//console.log("THIS IS A TOTALLY NEW USER or A TOALLY NEW QUESTION FOR THIS USER");
 			}
 			else{
-				console.log("RESULT RESULT RESULT OF GETANSWER FINDONE IS" + (typeof result));
-				console.log("QUESTION INDEX IS: "+ questionNumber);
-				answer = result.answers[questionNumber];
-				console.log("Previous answer is " +answer);
+				answer = result.answers[questionNumber];;
 			}
 			callback(answer);
-			
 		}
 	});
 }
